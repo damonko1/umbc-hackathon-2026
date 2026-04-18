@@ -17,17 +17,25 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { LoadingStates } from "@/components/loading-states";
+import { LoadingStates, type SimulationProgress } from "@/components/loading-states";
 import { CompareView } from "@/components/compare-view";
 import { MetricChart } from "@/components/metric-chart";
 
 type Stage = 0 | 1 | 2 | 3;
+
+function newSimulationId(): string {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return crypto.randomUUID();
+  }
+  return `sim_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
+}
 
 export default function SimulatePage() {
   const router = useRouter();
   const [stage, setStage] = React.useState<Stage>(0);
   const [result, setResult] = React.useState<SimulationResult | null>(null);
   const [error, setError] = React.useState<string | null>(null);
+  const [progress, setProgress] = React.useState<SimulationProgress | null>(null);
   const startedRef = React.useRef(false);
 
   React.useEffect(() => {
@@ -58,17 +66,59 @@ export default function SimulatePage() {
       return;
     }
 
+    const simulationId = newSimulationId();
+
     setStage(1);
     const t1 = setTimeout(() => {
       setStage((s) => (s < 2 ? 2 : s));
     }, 6000);
+
+    let cancelled = false;
+    const pollStats = async () => {
+      while (!cancelled) {
+        try {
+          const r = await fetch(
+            `/api/simulate/stats?id=${encodeURIComponent(simulationId)}`,
+            { cache: "no-store" },
+          );
+          if (r.ok) {
+            const j = (await r.json()) as {
+              found?: boolean;
+              stage?: "planner" | "dimensional" | "narrator" | "done";
+              callsDone?: number;
+              callsExpected?: number | null;
+              maxInFlight?: number;
+              rate429?: number;
+              errors?: number;
+            };
+            if (j.found) {
+              setProgress({
+                stage: j.stage ?? "planner",
+                callsDone: j.callsDone ?? 0,
+                callsExpected: j.callsExpected ?? null,
+                maxInFlight: j.maxInFlight ?? 0,
+                rate429: j.rate429 ?? 0,
+                errors: j.errors ?? 0,
+              });
+              if (j.stage === "dimensional" || j.stage === "narrator") {
+                setStage((s) => (s < 2 ? 2 : s));
+              }
+            }
+          }
+        } catch {
+          // ignore transient errors
+        }
+        await new Promise((r) => setTimeout(r, 1000));
+      }
+    };
+    void pollStats();
 
     (async () => {
       try {
         const res = await fetch("/api/simulate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(input),
+          body: JSON.stringify({ ...input, simulationId }),
         });
         if (!res.ok) {
           const text = await res.text().catch(() => "");
@@ -89,11 +139,13 @@ export default function SimulatePage() {
           e instanceof Error ? e.message : "Unknown error running simulation.";
         setError(msg);
       } finally {
+        cancelled = true;
         clearTimeout(t1);
       }
     })();
 
     return () => {
+      cancelled = true;
       clearTimeout(t1);
     };
   }, [router]);
@@ -138,7 +190,7 @@ export default function SimulatePage() {
             Hold tight — this usually takes 10-20 seconds.
           </p>
         </header>
-        <LoadingStates stage={stage} />
+        <LoadingStates stage={stage} progress={progress} />
       </main>
     );
   }

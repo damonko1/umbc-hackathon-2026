@@ -19,13 +19,46 @@ const STAGES = [
   },
 ] as const;
 
+export type SimulationProgress = {
+  stage: "planner" | "dimensional" | "narrator" | "done";
+  callsDone: number;
+  callsExpected: number | null;
+  maxInFlight: number;
+  rate429: number;
+  errors: number;
+};
+
 export interface LoadingStatesProps {
   stage: 0 | 1 | 2 | 3;
+  progress?: SimulationProgress | null;
 }
 
-export function LoadingStates({ stage }: LoadingStatesProps) {
+export function LoadingStates({ stage, progress }: LoadingStatesProps) {
   return (
     <div className="flex flex-col gap-4 max-w-lg">
+      {progress && (
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-xl border border-[var(--accent-2)]/30 bg-[var(--accent-2)]/5 px-4 py-2 text-xs text-[var(--muted)]">
+          <span>
+            <span className="font-medium text-foreground">
+              {progress.callsDone}
+            </span>
+            {progress.callsExpected !== null && (
+              <span> / {progress.callsExpected}</span>
+            )}
+            <span> calls</span>
+          </span>
+          <span>stage: <span className="text-foreground">{progress.stage}</span></span>
+          {progress.maxInFlight > 0 && (
+            <span>parallel peak: <span className="text-foreground">{progress.maxInFlight}</span></span>
+          )}
+          {progress.rate429 > 0 && (
+            <span className="text-amber-400">429s: {progress.rate429}</span>
+          )}
+          {progress.errors > 0 && (
+            <span className="text-red-400">errors: {progress.errors}</span>
+          )}
+        </div>
+      )}
       {STAGES.map((s, idx) => {
         const done = stage > idx;
         const active = stage === idx;
