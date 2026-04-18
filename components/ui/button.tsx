@@ -8,7 +8,7 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          "bg-[var(--accent)] text-white hover:bg-[color-mix(in_oklab,var(--accent),white_10%)] shadow-lg shadow-purple-500/20",
+          "bg-[var(--accent)] text-white hover:bg-[color-mix(in_oklab,var(--accent),white_10%)] shadow-[0_16px_40px_var(--accent-shadow)]",
         secondary:
           "bg-[var(--card)] text-foreground border border-[var(--border)] hover:bg-[color-mix(in_oklab,var(--card),white_6%)]",
         ghost: "hover:bg-[var(--card)] text-foreground",

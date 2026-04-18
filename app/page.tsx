@@ -35,7 +35,7 @@ export default function Home() {
           </Link>
         </div>
         <h1 className="text-4xl sm:text-6xl font-semibold tracking-tight leading-[1.05]">
-          <span className="bg-gradient-to-r from-white via-white to-[var(--accent-2)] bg-clip-text text-transparent">
+          <span className="bg-gradient-to-r from-[var(--hero-start)] via-[var(--hero-mid)] to-[var(--accent-2)] bg-clip-text text-transparent">
             Reality Fork
           </span>
         </h1>
