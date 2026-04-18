@@ -3,11 +3,20 @@ import { OllamaProvider } from "./ollama";
 import { GeminiProvider } from "./gemini";
 import { MiniMaxProvider } from "./minimax";
 import { RateLimitedProvider } from "./rate-limiter";
+import { TelemetryProvider, telemetry } from "./telemetry";
 
 export type { LlmProvider, ChatMessage, StructuredRequest } from "./types";
-export { OllamaProvider, GeminiProvider, MiniMaxProvider, RateLimitedProvider };
+export {
+  OllamaProvider,
+  GeminiProvider,
+  MiniMaxProvider,
+  RateLimitedProvider,
+  TelemetryProvider,
+  telemetry,
+};
 
 let cached: LlmProvider | null = null;
+let cachedRateLimited: RateLimitedProvider | null = null;
 
 function defaultRpmFor(providerName: string): number {
   if (providerName === "gemini") return 5;
@@ -61,8 +70,14 @@ export function getLlmProvider(): LlmProvider {
 
   const rpmRaw = process.env.LLM_RPM;
   const rpm = rpmRaw ? parseInt(rpmRaw, 10) : defaultRpmFor(providerName);
-  cached = new RateLimitedProvider(base, {
+  const instrumented = new TelemetryProvider(base);
+  cachedRateLimited = new RateLimitedProvider(instrumented, {
     rpm: Number.isFinite(rpm) ? rpm : defaultRpmFor(providerName),
   });
+  cached = cachedRateLimited;
   return cached;
+}
+
+export function getRateLimitedProvider(): RateLimitedProvider | null {
+  return cachedRateLimited;
 }
