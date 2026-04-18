@@ -13,7 +13,20 @@ const DIMENSION_LABELS: Record<Dimension, string> = {
   career: "Career",
   psychological: "Mind",
   events: "Events",
+  relationships: "Rel",
+  health: "Health",
+  learning: "Learn",
+  identity: "Self",
+  time: "Time",
+  social: "Social",
 };
+
+function labelForDim(dim: string): string {
+  if (dim in DIMENSION_LABELS) {
+    return DIMENSION_LABELS[dim as Dimension];
+  }
+  return dim.charAt(0).toUpperCase() + dim.slice(1);
+}
 
 const ACCENTS = {
   purple: {
@@ -64,7 +77,7 @@ export function Timeline({ timeline, accent = "purple" }: TimelineProps) {
           const isTurning = Boolean(step.turningPoint);
           const metricEntries = Object.entries(step.metrics).filter(
             ([, v]) => typeof v === "number",
-          ) as [Dimension, number][];
+          ) as [string, number][];
           return (
             <li key={step.stepIndex} className="relative">
               <span
@@ -114,7 +127,7 @@ export function Timeline({ timeline, accent = "purple" }: TimelineProps) {
                         className="gap-1"
                       >
                         <span className="text-[var(--muted)]">
-                          {DIMENSION_LABELS[dim]}
+                          {labelForDim(dim)}
                         </span>
                         <span className="text-foreground font-semibold">
                           {Math.round(val)}

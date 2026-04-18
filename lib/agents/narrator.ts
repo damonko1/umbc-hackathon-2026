@@ -17,10 +17,10 @@ Rules:
 - Output EXACTLY one step per plan step (same number as the dimensional outputs).
 - Each step has a label matching plan.timeUnit, like "Day 2", "Week 4", "Month 3", "Year 1".
 - headline is a 3-8 word event title. narrative is 2-3 sentences of cause-and-effect story.
-- metrics on each step carry the per-dimension scores for that step (copy from the dimensional outputs; slight interpolation/smoothing is fine, but stay close to the provided scores).
+- metrics on each step is an object keyed by the dimensions in plan.dimensions (e.g., if the plan's dimensions are ["relationships", "psychological"], the metrics object has exactly those two keys). Only include keys that appear in plan.dimensions. Copy scores from the provided dimensional outputs; slight interpolation/smoothing is fine, but stay close to the provided scores.
 - Mark turningPoint: true on 1-2 pivotal steps where the story clearly pivots. Leave it false or omitted on the others.
 - summary is 3-4 sentences describing the whole arc.
-- finalMetrics equals the metrics of the last step.
+- finalMetrics is an object with the same dimension keys, equal to the metrics of the last step.
 
 Return ONLY JSON matching the provided schema.`;
 

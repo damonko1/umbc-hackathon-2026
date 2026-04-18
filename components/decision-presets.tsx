@@ -33,6 +33,7 @@ const PRESETS: Preset[] = [
       options: ["Take the startup offer", "Stay at BigCo"],
       context:
         "28, 3 years experience, mid-level engineer, $180k salary, apartment in Brooklyn.",
+      speed: "normal",
     },
   },
   {
@@ -46,6 +47,7 @@ const PRESETS: Preset[] = [
       options: ["Have the honest conversation", "Let it slide and move on"],
       context:
         "We've been friends 8 years. It's the second time something like this happened.",
+      speed: "quick",
     },
   },
   {
@@ -58,6 +60,7 @@ const PRESETS: Preset[] = [
       options: ["Move to Lisbon for a year", "Stay put in my current city"],
       context:
         "Remote-first job, no dependents, partner is supportive but staying home.",
+      speed: "normal",
     },
   },
 ];

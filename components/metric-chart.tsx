@@ -28,6 +28,12 @@ const DIMENSION_TITLES: Record<Dimension, string> = {
   career: "Career",
   psychological: "Psychological",
   events: "Events",
+  relationships: "Relationships",
+  health: "Health",
+  learning: "Learning",
+  identity: "Identity",
+  time: "Time",
+  social: "Social",
 };
 
 export interface MetricChartProps {

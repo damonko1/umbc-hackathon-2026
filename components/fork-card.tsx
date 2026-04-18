@@ -15,7 +15,20 @@ const DIMENSION_LABELS: Record<Dimension, string> = {
   career: "Career",
   psychological: "Mind",
   events: "Events",
+  relationships: "Relationships",
+  health: "Health",
+  learning: "Learning",
+  identity: "Identity",
+  time: "Time",
+  social: "Social",
 };
+
+function labelForDim(dim: string): string {
+  if (dim in DIMENSION_LABELS) {
+    return DIMENSION_LABELS[dim as Dimension];
+  }
+  return dim.charAt(0).toUpperCase() + dim.slice(1);
+}
 
 export interface ForkCardProps {
   timeline: TimelineOutput;
@@ -44,7 +57,7 @@ export function ForkCard({ timeline, accent = "purple" }: ForkCardProps) {
   const theme = ACCENTS[accent];
   const metricEntries = Object.entries(timeline.finalMetrics).filter(
     ([, v]) => typeof v === "number",
-  ) as [Dimension, number][];
+  ) as [string, number][];
 
   return (
     <Card className={cn("ring-1 overflow-hidden", theme.ring)}>
@@ -74,7 +87,7 @@ export function ForkCard({ timeline, accent = "purple" }: ForkCardProps) {
               className="gap-1.5"
             >
               <span className="text-[var(--muted)]">
-                {DIMENSION_LABELS[dim]}
+                {labelForDim(dim)}
               </span>
               <span className="text-foreground font-semibold">
                 {Math.round(val)}

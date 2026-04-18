@@ -3,10 +3,20 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { Plus, X, Sparkles } from "lucide-react";
-import { DecisionInputSchema, type DecisionInput } from "@/lib/schemas";
+import {
+  DecisionInputSchema,
+  type DecisionInput,
+  type SpeedTier,
+} from "@/lib/schemas";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea, Label } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+
+const SPEED_OPTIONS: { value: SpeedTier; label: string; caption: string }[] = [
+  { value: "quick", label: "Quick", caption: "~15s · 1-2 forks, 3-6 steps" },
+  { value: "normal", label: "Normal", caption: "~45s · 2-3 forks, up to 18 steps" },
+  { value: "deep", label: "Deep", caption: "~2 min · 2-3 forks, up to 36 steps" },
+];
 
 type FieldErrors = {
   question?: string;
@@ -28,6 +38,9 @@ export function DecisionForm({ initial }: DecisionFormProps) {
   );
   const [context, setContext] = React.useState(initial?.context ?? "");
   const [goals, setGoals] = React.useState(initial?.goals ?? "");
+  const [speed, setSpeed] = React.useState<SpeedTier>(
+    initial?.speed ?? "normal",
+  );
   const [errors, setErrors] = React.useState<FieldErrors>({});
   const [submitting, setSubmitting] = React.useState(false);
 
@@ -37,6 +50,7 @@ export function DecisionForm({ initial }: DecisionFormProps) {
       setOptions(initial.options ?? ["", ""]);
       setContext(initial.context ?? "");
       setGoals(initial.goals ?? "");
+      setSpeed(initial.speed ?? "normal");
     }
   }, [initial]);
 
@@ -61,6 +75,7 @@ export function DecisionForm({ initial }: DecisionFormProps) {
     const candidate: Record<string, unknown> = {
       question: question.trim(),
       options: options.map((o) => o.trim()).filter((o) => o.length > 0),
+      speed,
     };
     if (context.trim()) candidate.context = context.trim();
     if (goals.trim()) candidate.goals = goals.trim();
@@ -203,14 +218,39 @@ export function DecisionForm({ initial }: DecisionFormProps) {
         <p className="text-sm text-red-400">{errors._form}</p>
       )}
 
+      <div className="flex flex-col gap-2">
+        <Label>Simulation depth</Label>
+        <div className="inline-flex rounded-lg border border-[var(--border)] bg-[var(--card)]/50 p-1 w-fit">
+          {SPEED_OPTIONS.map((opt) => {
+            const active = speed === opt.value;
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => setSpeed(opt.value)}
+                aria-pressed={active}
+                className={cn(
+                  "px-3 py-1.5 text-sm rounded-md transition-colors",
+                  active
+                    ? "bg-[var(--accent)]/20 text-foreground"
+                    : "text-[var(--muted)] hover:text-foreground",
+                )}
+              >
+                {opt.label}
+              </button>
+            );
+          })}
+        </div>
+        <p className="text-xs text-[var(--muted)]">
+          {SPEED_OPTIONS.find((o) => o.value === speed)?.caption}
+        </p>
+      </div>
+
       <div className="flex items-center gap-3 pt-1">
         <Button type="submit" size="lg" disabled={submitting}>
           <Sparkles className="h-4 w-4" />
           {submitting ? "Forking reality..." : "Simulate futures"}
         </Button>
-        <span className="text-xs text-[var(--muted)]">
-          Takes ~15 seconds.
-        </span>
       </div>
     </form>
   );

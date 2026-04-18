@@ -16,6 +16,7 @@ async function main() {
     options: ["Have the honest conversation", "Let it slide and move on"],
     context:
       "We have been friends 8 years. This is the second time something like this happened.",
+    speed: "normal" as const,
   };
 
   console.log("Running simulation...");

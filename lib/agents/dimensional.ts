@@ -15,9 +15,21 @@ export const DIMENSION_BRIEFS: Record<Dimension, string> = {
   career:
     "Track professional trajectory: skill growth, reputation, role seniority, and career momentum. Scores near 100 mean strong upward momentum and opportunity; near 0 mean stalled or damaged career. Note tangible milestones like promotions, new skills, or burnout.",
   psychological:
-    "Track the person's inner state: stress, meaning, relationships, identity, and mood. Scores near 100 mean thriving and aligned with values; near 0 mean burnt out, anxious, or lost. Focus on felt experience, not external events.",
+    "Track the person's inner state: stress, meaning, mood, and self-image. Scores near 100 mean thriving and aligned with values; near 0 mean burnt out, anxious, or lost. Focus on felt inner experience, not external events.",
   events:
     "Track notable external events and situational developments that happen because of this path: encounters, surprises, crises, wins. Scores near 100 mean meaningful positive events are landing; near 0 mean bad luck or crisis events dominate.",
+  relationships:
+    "Track the health of close bonds: friends, family, partner, key people in the person's life. Scores near 100 mean trust is deepening and connection is strong; near 0 mean ruptured trust, distance, or loss. Note concrete interactions that shifted the tie.",
+  health:
+    "Track physical and mental wellbeing: sleep, energy, fitness, recovery, mental load. Scores near 100 mean vital, rested, and resilient; near 0 mean sick, exhausted, or in crisis. Note tangible drivers like routine changes, stress load, or illness.",
+  learning:
+    "Track skills and knowledge gained through this path: formal study, on-the-job growth, craft mastery. Scores near 100 mean rapid meaningful learning; near 0 mean stagnation or skill decay. Note concrete things learned or capabilities unlocked.",
+  identity:
+    "Track who the person is becoming: values alignment, self-concept, sense of direction. Scores near 100 mean living in alignment with who they want to be; near 0 mean drifting, performing, or losing themselves. Note moments that reinforce or rattle their self-sense.",
+  time:
+    "Track autonomy and lifestyle: free time, pace, control over the schedule, recovery space. Scores near 100 mean spacious, self-directed days; near 0 mean overbooked, reactive, or trapped. Note what the week actually feels like.",
+  social:
+    "Track the broader social surface: community, belonging, reputation in a wider group, network breadth. Scores near 100 mean embedded and visible in a community; near 0 mean isolated or socially invisible. Distinct from close relationships — this is the wider circle.",
 };
 
 function buildSystemPrompt(dimension: Dimension): string {
