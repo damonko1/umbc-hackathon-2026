@@ -1,8 +1,16 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import type { ZodTypeAny, z } from "zod";
+import type { ClarifyingQuestion, DecisionInput, SimulationResult } from "@/lib/schemas";
 import type { CallMeta, LlmProvider, StructuredRequest } from "./types";
 
 export type AgentLabel = "planner" | "dimensional" | "narrator" | "other";
+
+export type SimulationStage =
+  | "planner"
+  | "dimensional"
+  | "narrator"
+  | "awaiting_answers"
+  | "done";
 
 export type CallRecord = {
   simulationId: string | null;
@@ -24,7 +32,7 @@ type SimulationState = {
   id: string;
   startedAt: number;
   endedAt: number | null;
-  stage: "planner" | "dimensional" | "narrator" | "done";
+  stage: SimulationStage;
   plannedForks: number | null;
   plannedDimensions: number | null;
   callsDone: number;
@@ -33,6 +41,9 @@ type SimulationState = {
   maxInFlight: number;
   rate429: number;
   errors: number;
+  originalInput: DecisionInput | null;
+  pausedQuestions: ClarifyingQuestion[] | null;
+  result: SimulationResult | null;
 };
 
 type SimulationContext = { simulationId: string; startedAt: number };
@@ -82,9 +93,12 @@ class TelemetryRecorder {
     other: 0,
   };
 
-  startSimulation(id: string): SimulationState {
+  startSimulation(id: string, input?: DecisionInput): SimulationState {
     const existing = this.sims.get(id);
-    if (existing) return existing;
+    if (existing) {
+      if (input && !existing.originalInput) existing.originalInput = input;
+      return existing;
+    }
     const state: SimulationState = {
       id,
       startedAt: Date.now(),
@@ -98,6 +112,9 @@ class TelemetryRecorder {
       maxInFlight: 0,
       rate429: 0,
       errors: 0,
+      originalInput: input ?? null,
+      pausedQuestions: null,
+      result: null,
     };
     this.sims.set(id, state);
     if (this.sims.size > 50) {
@@ -121,6 +138,26 @@ class TelemetryRecorder {
     s.plannedForks = forks;
     s.plannedDimensions = dimensions;
     s.callsExpected = 1 + forks * dimensions + forks;
+  }
+
+  setAwaitingAnswers(id: string, questions: ClarifyingQuestion[]): void {
+    const s = this.sims.get(id);
+    if (!s) return;
+    s.stage = "awaiting_answers";
+    s.pausedQuestions = questions;
+  }
+
+  clearAwaitingAnswers(id: string): void {
+    const s = this.sims.get(id);
+    if (!s) return;
+    s.pausedQuestions = null;
+    if (s.stage === "awaiting_answers") s.stage = "planner";
+  }
+
+  setResult(id: string, result: SimulationResult): void {
+    const s = this.sims.get(id);
+    if (!s) return;
+    s.result = result;
   }
 
   getSim(id: string): SimulationState | null {

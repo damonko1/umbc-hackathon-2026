@@ -37,8 +37,19 @@ export async function POST(req: Request) {
   }
 
   try {
-    const result = await runSimulation(parsed.data, { simulationId });
-    return Response.json({ ...result, simulationId });
+    const startResult = await runSimulation(parsed.data, { simulationId });
+    if (startResult.status === "questions") {
+      return Response.json({
+        status: "questions",
+        simulationId: startResult.simulationId,
+        questions: startResult.questions,
+      });
+    }
+    return Response.json({
+      status: "complete",
+      simulationId: startResult.simulationId,
+      result: startResult.result,
+    });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error(`[api/simulate] failed (sim=${simulationId.slice(0, 8)}): ${message}`);

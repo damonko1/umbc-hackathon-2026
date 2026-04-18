@@ -1,13 +1,36 @@
+import { z } from "zod";
 import { getLlmProvider } from "@/lib/llm";
 import type { ChatMessage } from "@/lib/llm/types";
 import {
+  ClarifyingAnswer,
+  ClarifyingQuestion,
+  ClarifyingQuestionSchema,
   DecisionInput,
+  DIMENSIONS,
+  PlannerForkSchema,
   PlannerOutput,
   PlannerOutputSchema,
+  PlannerResponse,
+  TIME_UNITS,
   SPEED_TIER_BOUNDS,
 } from "@/lib/schemas";
 
-const SYSTEM_PROMPT = `You are the Planner agent for Reality Fork, a tool that simulates parallel "what-if" timelines for a life decision.
+/**
+ * Flat schema sent to the model when questions are allowed.
+ * Discriminated unions confuse tool-use models (they sometimes string-ify
+ * nested objects), so we keep the wire format flat and reshape after parsing.
+ */
+const FlatPlannerResponseSchema = z.object({
+  type: z.enum(["plan", "questions"]).describe("'plan' to proceed; 'questions' to pause and ask the user"),
+  rationale: z.string().optional().describe("[plan only] One sentence on why this horizon/granularity fits"),
+  timeUnit: z.enum(TIME_UNITS).optional().describe("[plan only] Time unit"),
+  numSteps: z.number().int().min(3).max(36).optional().describe("[plan only] How many timesteps"),
+  dimensions: z.array(z.enum(DIMENSIONS)).min(1).max(4).optional().describe("[plan only] Which life dimensions matter"),
+  forks: z.array(PlannerForkSchema).min(1).max(3).optional().describe("[plan only] Forks derived from the user's options"),
+  questions: z.array(ClarifyingQuestionSchema).min(1).max(3).optional().describe("[questions only] 1-3 clarifying questions"),
+});
+
+const BASE_SYSTEM_PROMPT = `You are the Planner agent for Reality Fork, a tool that simulates parallel "what-if" timelines for a life decision.
 Your job is to design the simulation: choose an appropriate time scale, decide how many steps to simulate, pick which life dimensions matter, and split the user's options into forks.
 
 Adaptive time-scale rule:
@@ -58,9 +81,27 @@ Output: timeUnit "month", numSteps 18, dimensions ["financial", "career", "psych
 
 Example D — weekend plan, quick tier:
 Input: question "Go to the party or stay in?", options ["Go out", "Stay in"], speed "quick".
-Output: timeUnit "day", numSteps 3, dimensions ["social", "psychological"], 2 forks.
+Output: timeUnit "day", numSteps 3, dimensions ["social", "psychological"], 2 forks.`;
 
-Return ONLY JSON matching the provided schema.`;
+const QUESTIONS_ALLOWED_INSTRUCTIONS = `
+You may, INSTEAD of returning a plan, return 1-3 clarifying questions when the input is genuinely ambiguous in ways that would meaningfully change the simulation (timeframe, priorities, constraints, what success looks like). Don't ask for the sake of asking — if the input is already specific enough to plan a useful simulation, just plan it.
+
+When asking questions:
+- Each question is either "multiple_choice" (with 2-5 distinct preset choices) or "free_text" (open-ended).
+- Use multiple_choice when the answer space is naturally bounded (timeframe, priority, risk tolerance). Do NOT include an "Other" choice in your list — the UI appends it automatically.
+- Use free_text only when canned options would be reductive (e.g. "what does success look like to you?").
+- Ask at most 3 questions. Prefer the smallest number that resolves the real ambiguity.
+- Each question's "why" should briefly name the ambiguity it resolves.
+
+Response shape (FLAT — fill the relevant fields based on type):
+- To proceed: set type="plan" and fill rationale, timeUnit, numSteps, dimensions, forks. Leave questions empty/omitted.
+- To pause and ask: set type="questions" and fill questions. Leave plan fields (rationale, timeUnit, numSteps, dimensions, forks) empty/omitted.`;
+
+const QUESTIONS_FORBIDDEN_INSTRUCTIONS = `
+The user has already answered your earlier clarifying questions (see the PRIOR_ANSWERS section in the input). You MUST now produce a plan — do NOT ask more questions. Fold the answers into your planning decisions.
+
+Response shape:
+- { "type": "plan", "plan": { ...PlannerOutput } }`;
 
 function clampToTier(
   plan: PlannerOutput,
@@ -88,10 +129,28 @@ function clampToTier(
   };
 }
 
-export async function runPlanner(input: DecisionInput): Promise<PlannerOutput> {
+export type RunPlannerOptions = {
+  mayAskQuestions?: boolean;
+  priorAnswers?: Array<{ question: ClarifyingQuestion; answer: ClarifyingAnswer }>;
+};
+
+export async function runPlanner(
+  input: DecisionInput,
+  opts: RunPlannerOptions = {},
+): Promise<PlannerResponse> {
   const provider = getLlmProvider();
   const speed = input.speed;
   const bounds = SPEED_TIER_BOUNDS[speed];
+  const mayAskQuestions = opts.mayAskQuestions ?? false;
+
+  const systemPrompt = mayAskQuestions
+    ? `${BASE_SYSTEM_PROMPT}\n${QUESTIONS_ALLOWED_INSTRUCTIONS}`
+    : `${BASE_SYSTEM_PROMPT}\n${QUESTIONS_FORBIDDEN_INSTRUCTIONS}`;
+
+  const priorAnswersPayload = opts.priorAnswers?.map((qa) => ({
+    question: qa.question.prompt,
+    answer: qa.answer.value,
+  }));
 
   const userPayload = {
     question: input.question,
@@ -104,13 +163,20 @@ export async function runPlanner(input: DecisionInput): Promise<PlannerOutput> {
       numSteps: `${bounds.stepsMin}-${bounds.stepsMax}`,
       dimensions: `${bounds.dimensionsMin}-${bounds.dimensionsMax}`,
     },
+    ...(priorAnswersPayload && priorAnswersPayload.length > 0
+      ? { PRIOR_ANSWERS: priorAnswersPayload }
+      : {}),
   };
 
+  const userInstruction = mayAskQuestions
+    ? `Design a Reality Fork simulation plan for this decision, OR return clarifying questions if the input is genuinely ambiguous.`
+    : `The user has answered your earlier questions. Design the Reality Fork simulation plan now — questions are no longer permitted.`;
+
   const messages: ChatMessage[] = [
-    { role: "system", content: SYSTEM_PROMPT },
+    { role: "system", content: systemPrompt },
     {
       role: "user",
-      content: `Design a Reality Fork simulation plan for this decision.
+      content: `${userInstruction}
 
 Speed tier is "${speed}". You MUST stay within these bounds:
 - forks: ${bounds.forksMin}-${bounds.forksMax}
@@ -125,14 +191,41 @@ Return ONLY JSON matching the provided schema.`,
   ];
 
   try {
-    const result = await provider.generateStructured({
+    if (mayAskQuestions) {
+      const flat = await provider.generateStructured({
+        messages,
+        schema: FlatPlannerResponseSchema,
+        schemaName: "PlannerResponse",
+        temperature: 0.3,
+        maxRetries: 2,
+      });
+
+      if (flat.type === "questions") {
+        if (!flat.questions || flat.questions.length === 0) {
+          throw new Error("Planner returned type=questions but no questions");
+        }
+        return { type: "questions", questions: flat.questions };
+      }
+
+      const planCandidate = {
+        rationale: flat.rationale,
+        timeUnit: flat.timeUnit,
+        numSteps: flat.numSteps,
+        dimensions: flat.dimensions,
+        forks: flat.forks,
+      };
+      const parsedPlan = PlannerOutputSchema.parse(planCandidate);
+      return { type: "plan", plan: clampToTier(parsedPlan, speed) };
+    }
+
+    const plan = await provider.generateStructured({
       messages,
       schema: PlannerOutputSchema,
       schemaName: "PlannerOutput",
       temperature: 0.3,
       maxRetries: 2,
     });
-    return clampToTier(result, speed);
+    return { type: "plan", plan: clampToTier(plan, speed) };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error(`[planner] failed: ${message}`);

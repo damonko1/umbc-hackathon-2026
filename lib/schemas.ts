@@ -90,6 +90,51 @@ export const PlannerOutputSchema = z.object({
 export type PlannerFork = z.infer<typeof PlannerForkSchema>;
 export type PlannerOutput = z.infer<typeof PlannerOutputSchema>;
 
+/* ------------------ clarifying questions (planner) ------------------ */
+
+export const ClarifyingQuestionSchema = z.object({
+  id: z
+    .string()
+    .min(1)
+    .max(40)
+    .describe("Short slug id for this question, e.g. q-timeframe"),
+  prompt: z
+    .string()
+    .min(3)
+    .max(300)
+    .describe("The question to ask the user, in plain language"),
+  kind: z
+    .enum(["multiple_choice", "free_text"])
+    .describe("Render style: multiple_choice shows preset options + Other; free_text shows a textarea"),
+  choices: z
+    .array(z.string().min(1).max(160))
+    .min(2)
+    .max(5)
+    .optional()
+    .describe("2-5 preset options when kind=multiple_choice. Do NOT include an 'Other' choice; the UI appends it."),
+  why: z
+    .string()
+    .max(200)
+    .optional()
+    .describe("Optional one-liner: which ambiguity in the user's input this question resolves"),
+});
+export type ClarifyingQuestion = z.infer<typeof ClarifyingQuestionSchema>;
+
+export const PlannerResponseSchema = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("plan"), plan: PlannerOutputSchema }),
+  z.object({
+    type: z.literal("questions"),
+    questions: z.array(ClarifyingQuestionSchema).min(1).max(3),
+  }),
+]);
+export type PlannerResponse = z.infer<typeof PlannerResponseSchema>;
+
+export const ClarifyingAnswerSchema = z.object({
+  id: z.string().min(1).max(40),
+  value: z.string().min(1).max(1000),
+});
+export type ClarifyingAnswer = z.infer<typeof ClarifyingAnswerSchema>;
+
 /* ----------------------- dimensional agent ------------------------- */
 
 export const DimensionStepSchema = z.object({
