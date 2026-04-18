@@ -1,8 +1,10 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, AlertTriangle, RotateCw } from "lucide-react";
+import { ArrowLeft, AlertTriangle, RotateCw, History, Brain } from "lucide-react";
+import { z } from "zod";
 import {
   ClarifyingQuestionSchema,
   DecisionInputSchema,
@@ -12,7 +14,6 @@ import {
   type DecisionInput,
   type SimulationResult,
 } from "@/lib/schemas";
-import { z } from "zod";
 import {
   Card,
   CardContent,
@@ -40,11 +41,13 @@ const SimulateResponseSchema = z.discriminatedUnion("status", [
     status: z.literal("complete"),
     simulationId: z.string(),
     result: SimulationResultSchema,
+    decisionRunId: z.string().uuid().optional(),
   }),
   z.object({
     status: z.literal("questions"),
     simulationId: z.string(),
     questions: z.array(ClarifyingQuestionSchema).min(1).max(3),
+    decisionRunId: z.string().uuid().optional(),
   }),
 ]);
 
@@ -52,12 +55,14 @@ const AnswersResponseSchema = z.object({
   status: z.literal("complete"),
   simulationId: z.string(),
   result: SimulationResultSchema,
+  decisionRunId: z.string().uuid().nullable().optional(),
 });
 
 export default function SimulatePage() {
   const router = useRouter();
   const [stage, setStage] = React.useState<Stage>(0);
   const [result, setResult] = React.useState<SimulationResult | null>(null);
+  const [decisionRunId, setDecisionRunId] = React.useState<string | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const [progress, setProgress] = React.useState<SimulationProgress | null>(null);
   const [questions, setQuestions] = React.useState<ClarifyingQuestion[] | null>(null);
@@ -70,12 +75,13 @@ export default function SimulatePage() {
   const startPolling = React.useCallback((simulationId: string) => {
     pollControlRef.current?.stop();
     let cancelled = false;
+
     const loop = async () => {
       while (!cancelled) {
         try {
           const r = await fetch(
             `/api/simulate/stats?id=${encodeURIComponent(simulationId)}`,
-            { cache: "no-store" },
+            { cache: "no-store" }
           );
           if (r.ok) {
             const j = (await r.json()) as {
@@ -96,7 +102,9 @@ export default function SimulatePage() {
                 rate429: j.rate429 ?? 0,
                 errors: j.errors ?? 0,
               });
-              if (j.stage === "dimensional" || j.stage === "narrator") {
+              if (j.stage === "dimensional") {
+                setStage((s) => (s < 1 ? 1 : s));
+              } else if (j.stage === "narrator") {
                 setStage((s) => (s < 2 ? 2 : s));
               }
             }
@@ -107,6 +115,7 @@ export default function SimulatePage() {
         await new Promise((r) => setTimeout(r, 1000));
       }
     };
+
     void loop();
     pollControlRef.current = {
       stop: () => {
@@ -146,9 +155,8 @@ export default function SimulatePage() {
     const simulationId = newSimulationId();
     simulationIdRef.current = simulationId;
 
-    setStage(1);
     const t1 = setTimeout(() => {
-      setStage((s) => (s < 2 ? 2 : s));
+      setStage((s) => (s < 1 ? 1 : s));
     }, 6000);
 
     startPolling(simulationId);
@@ -160,28 +168,49 @@ export default function SimulatePage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ ...input, simulationId }),
         });
+
+        const json = await res.json();
+        if (
+          json &&
+          typeof json === "object" &&
+          "decisionRunId" in json &&
+          typeof json.decisionRunId === "string"
+        ) {
+          setDecisionRunId(json.decisionRunId);
+        }
+
         if (!res.ok) {
-          const text = await res.text().catch(() => "");
           throw new Error(
-            text || `Simulation failed (${res.status} ${res.statusText}).`,
+            (json &&
+            typeof json === "object" &&
+            "error" in json &&
+            typeof json.error === "string"
+              ? json.error
+              : "") ||
+              `Simulation failed (${res.status} ${res.statusText}).`
           );
         }
-        const json = await res.json();
+
         const validated = SimulateResponseSchema.safeParse(json);
         if (!validated.success) {
           throw new Error("Received an unexpected response shape.");
         }
+
+        if (validated.data.decisionRunId) {
+          setDecisionRunId(validated.data.decisionRunId);
+        }
+
         if (validated.data.status === "questions") {
           pollControlRef.current?.stop();
           setQuestions(validated.data.questions);
           clearTimeout(t1);
           return;
         }
+
         setResult(validated.data.result);
         setStage(3);
       } catch (e) {
-        const msg =
-          e instanceof Error ? e.message : "Unknown error running simulation.";
+        const msg = e instanceof Error ? e.message : "Unknown error running simulation.";
         setError(msg);
       } finally {
         pollControlRef.current?.stop();
@@ -209,18 +238,19 @@ export default function SimulatePage() {
         const res = await fetch("/api/simulate/answers", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ simulationId, answers }),
+          body: JSON.stringify({ simulationId, decisionRunId, answers }),
         });
         if (!res.ok) {
           const text = await res.text().catch(() => "");
-          throw new Error(
-            text || `Failed to continue simulation (${res.status}).`,
-          );
+          throw new Error(text || `Failed to continue simulation (${res.status}).`);
         }
         const json = await res.json();
         const validated = AnswersResponseSchema.safeParse(json);
         if (!validated.success) {
           throw new Error("Received an unexpected response shape.");
+        }
+        if (validated.data.decisionRunId) {
+          setDecisionRunId(validated.data.decisionRunId);
         }
         setResult(validated.data.result);
         setStage(3);
@@ -233,7 +263,7 @@ export default function SimulatePage() {
         setSubmittingAnswers(false);
       }
     },
-    [startPolling],
+    [decisionRunId, startPolling]
   );
 
   if (error) {
@@ -248,10 +278,7 @@ export default function SimulatePage() {
             <CardDescription>{error}</CardDescription>
           </CardHeader>
           <CardContent className="flex items-center gap-3">
-            <Button
-              variant="secondary"
-              onClick={() => router.push("/")}
-            >
+            <Button variant="secondary" onClick={() => router.push("/")}>
               <ArrowLeft className="h-4 w-4" />
               Back
             </Button>
@@ -305,18 +332,35 @@ export default function SimulatePage() {
   return (
     <main className="mx-auto w-full max-w-6xl px-5 py-10 sm:py-14 flex flex-col gap-8">
       <div className="flex items-center justify-between">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => router.push("/")}
-        >
-          <ArrowLeft className="h-4 w-4" />
-          New decision
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="sm" onClick={() => router.push("/")}>
+            <ArrowLeft className="h-4 w-4" />
+            New decision
+          </Button>
+          <Link href="/history">
+            <Button variant="secondary" size="sm">
+              <History className="h-4 w-4" />
+              History
+            </Button>
+          </Link>
+          <Link href="/memory">
+            <Button variant="secondary" size="sm">
+              <Brain className="h-4 w-4" />
+              Memory
+            </Button>
+          </Link>
+        </div>
+        {decisionRunId && (
+          <Link
+            href={`/history/${decisionRunId}`}
+            className="text-sm text-[var(--muted)] transition-colors hover:text-foreground"
+          >
+            Saved to history
+          </Link>
+        )}
       </div>
       <MetricChart result={result} />
       <CompareView result={result} />
     </main>
   );
 }
-

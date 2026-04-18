@@ -1,4 +1,5 @@
 import * as React from "react";
+import Link from "next/link";
 import { Sparkles, GitBranch, LineChart } from "lucide-react";
 import {
   Card,
@@ -19,6 +20,20 @@ export default function Home() {
           <Sparkles className="h-3 w-3" />
           Foresight engine
         </Badge>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/history"
+            className="inline-flex items-center rounded-full border border-[var(--border)] bg-[var(--card)]/65 px-3 py-1 text-xs font-medium text-[var(--muted)] transition-colors hover:text-foreground"
+          >
+            Past decisions
+          </Link>
+          <Link
+            href="/memory"
+            className="inline-flex items-center rounded-full border border-[var(--border)] bg-[var(--card)]/65 px-3 py-1 text-xs font-medium text-[var(--muted)] transition-colors hover:text-foreground"
+          >
+            Memory
+          </Link>
+        </div>
         <h1 className="text-4xl sm:text-6xl font-semibold tracking-tight leading-[1.05]">
           <span className="bg-gradient-to-r from-white via-white to-[var(--accent-2)] bg-clip-text text-transparent">
             Reality Fork

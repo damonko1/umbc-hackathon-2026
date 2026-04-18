@@ -8,9 +8,7 @@ async function main() {
     if (m) process.env[m[1]] = m[2];
   }
 
-  const { runSimulation, resumeSimulation } = await import(
-    "../lib/orchestrator.ts"
-  );
+  const { runSimulation, resumeSimulation } = await import("../lib/orchestrator");
 
   // ------------------------------------------------------------------
   // Case 1: rich input — should proceed straight to a plan, no questions.
@@ -30,13 +28,13 @@ async function main() {
   const e1 = ((Date.now() - t1) / 1000).toFixed(1);
   if (r1.status !== "complete") {
     console.log(
-      `\n[case 1] FAIL after ${e1}s — expected status=complete, got status=${r1.status}`,
+      `\n[case 1] FAIL after ${e1}s — expected status=complete, got status=${r1.status}`
     );
     process.exit(1);
   }
   console.log(`[case 1] DONE in ${e1}s — sim=${r1.simulationId.slice(0, 8)}`);
   console.log(
-    `  plan: timeUnit=${r1.result.plan.timeUnit} numSteps=${r1.result.plan.numSteps} forks=${r1.result.plan.forks.length} dims=${r1.result.plan.dimensions.length}`,
+    `  plan: timeUnit=${r1.result.plan.timeUnit} numSteps=${r1.result.plan.numSteps} forks=${r1.result.plan.forks.length} dims=${r1.result.plan.dimensions.length}`
   );
   console.log(`  timelines: ${r1.result.timelines.length}`);
   fs.writeFileSync("/tmp/rf-result.json", JSON.stringify(r1.result, null, 2));
@@ -57,13 +55,15 @@ async function main() {
   const e2 = ((Date.now() - t2) / 1000).toFixed(1);
   if (r2.status !== "questions") {
     console.log(
-      `\n[case 2] WARNING after ${e2}s — planner did not ask questions despite sparse input. status=${r2.status}`,
+      `\n[case 2] WARNING after ${e2}s — planner did not ask questions despite sparse input. status=${r2.status}`
     );
-    console.log("  This may be OK (planner judged it clear enough), but the questions path was not exercised.");
+    console.log(
+      "  This may be OK (planner judged it clear enough), but the questions path was not exercised."
+    );
     process.exit(0);
   }
   console.log(
-    `[case 2] PAUSED in ${e2}s — sim=${r2.simulationId.slice(0, 8)} questions=${r2.questions.length}`,
+    `[case 2] PAUSED in ${e2}s — sim=${r2.simulationId.slice(0, 8)} questions=${r2.questions.length}`
   );
   for (const q of r2.questions) {
     console.log(`  - [${q.kind}] ${q.prompt}`);
@@ -73,7 +73,6 @@ async function main() {
     if (q.why) console.log(`      why: ${q.why}`);
   }
 
-  // Auto-answer with the first choice for MC, or a canned string for free-text.
   const answers = r2.questions.map((q) => ({
     id: q.id,
     value:
@@ -88,12 +87,12 @@ async function main() {
   const e3 = ((Date.now() - t3) / 1000).toFixed(1);
   console.log(`[case 2] RESUMED in ${e3}s`);
   console.log(
-    `  plan: timeUnit=${resumed.plan.timeUnit} numSteps=${resumed.plan.numSteps} forks=${resumed.plan.forks.length} dims=${resumed.plan.dimensions.length}`,
+    `  plan: timeUnit=${resumed.plan.timeUnit} numSteps=${resumed.plan.numSteps} forks=${resumed.plan.forks.length} dims=${resumed.plan.dimensions.length}`
   );
   console.log(`  timelines: ${resumed.timelines.length}`);
   fs.writeFileSync(
     "/tmp/rf-result-resumed.json",
-    JSON.stringify(resumed, null, 2),
+    JSON.stringify(resumed, null, 2)
   );
 
   console.log("\nAll cases passed.");
@@ -105,7 +104,7 @@ main().catch((err: unknown) => {
   if (err && typeof err === "object" && "issues" in err) {
     console.log(
       "issues:",
-      JSON.stringify((err as { issues: unknown }).issues, null, 2),
+      JSON.stringify((err as { issues: unknown }).issues, null, 2)
     );
   }
   process.exit(1);
