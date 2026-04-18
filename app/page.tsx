@@ -15,7 +15,7 @@ import { DecisionForm } from "@/components/decision-form";
 export default function Home() {
   return (
     <main className="mx-auto w-full max-w-5xl px-5 py-14 sm:py-20 flex flex-col gap-12">
-      <section className="flex flex-col items-start gap-4">
+      <section className="flex flex-col items-center gap-4 text-center">
         <Badge variant="accent" className="gap-1.5">
           <Sparkles className="h-3 w-3" />
           Foresight engine
