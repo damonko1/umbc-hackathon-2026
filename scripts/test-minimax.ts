@@ -9,7 +9,7 @@ async function main() {
     if (m) process.env[m[1]] = m[2];
   }
 
-  const { MiniMaxProvider } = await import("../lib/llm/minimax.ts");
+  const { MiniMaxProvider } = await import("../lib/llm/minimax");
   const provider = new MiniMaxProvider({
     apiKey: process.env.MINIMAX_API_KEY!,
   });

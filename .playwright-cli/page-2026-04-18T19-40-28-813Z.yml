@@ -1,0 +1,99 @@
+- main [ref=e2]:
+  - generic [ref=e3]:
+    - generic [ref=e4]:
+      - img [ref=e5]
+      - text: Foresight engine
+    - heading "Reality Fork" [level=1] [ref=e8]
+    - paragraph [ref=e9]: See the futures your decisions unlock. Describe a crossroads and watch parallel timelines play out, side by side.
+  - generic [ref=e10]:
+    - generic [ref=e11]:
+      - heading "Start from an example" [level=3] [ref=e12]
+      - paragraph [ref=e13]: One click simulates a common decision. You can also write your own below.
+    - generic [ref=e15]:
+      - generic [ref=e16]:
+        - generic [ref=e17]:
+          - generic [ref=e18]:
+            - img [ref=e20]
+            - heading "Career crossroads" [level=3] [ref=e23]
+          - paragraph [ref=e24]: Startup risk vs. BigCo stability.
+        - generic [ref=e25]:
+          - paragraph [ref=e26]: Should I take the early-stage startup offer or stay at my stable BigCo job?
+          - button "Try this" [ref=e27]:
+            - text: Try this
+            - img [ref=e28]
+      - generic [ref=e30]:
+        - generic [ref=e31]:
+          - generic [ref=e32]:
+            - img [ref=e34]
+            - heading "Tough conversation" [level=3] [ref=e36]
+          - paragraph [ref=e37]: Speak up with a friend, or let it go.
+        - generic [ref=e38]:
+          - paragraph [ref=e39]: Should I tell my close friend that their recent comment really hurt me?
+          - button "Try this" [ref=e40]:
+            - text: Try this
+            - img [ref=e41]
+      - generic [ref=e43]:
+        - generic [ref=e44]:
+          - generic [ref=e45]:
+            - img [ref=e47]
+            - heading "Relocation" [level=3] [ref=e49]
+          - paragraph [ref=e50]: A year abroad vs. staying put.
+        - generic [ref=e51]:
+          - paragraph [ref=e52]: Should I move to Lisbon for a year to work remotely?
+          - button "Try this" [ref=e53]:
+            - text: Try this
+            - img [ref=e54]
+  - generic [ref=e56]:
+    - generic [ref=e57]:
+      - heading "Describe your decision" [level=3] [ref=e58]
+      - paragraph [ref=e59]: Two or three options work best. Add context if it feels relevant.
+    - generic [ref=e61]:
+      - generic [ref=e62]:
+        - generic [ref=e63]: The decision you're weighing
+        - textbox "The decision you're weighing" [ref=e64]:
+          - /placeholder: Should I take the startup offer or stay at BigCo?
+      - generic [ref=e65]:
+        - generic [ref=e66]:
+          - generic [ref=e67]: Options (optional)
+          - button "Add option" [ref=e68]:
+            - img [ref=e69]
+            - text: Add option
+        - paragraph [ref=e70]: Leave these blank if you want Reality Fork to infer the likely paths for you.
+        - generic [ref=e71]:
+          - textbox "Option 1" [ref=e74]
+          - textbox "Option 2" [ref=e77]
+      - generic [ref=e78]:
+        - generic [ref=e79]: Context (optional)
+        - textbox "Context (optional)" [ref=e80]:
+          - /placeholder: Age, situation, current state, constraints...
+        - paragraph [ref=e81]: You can also upload files below to give the model more context.
+      - generic [ref=e82]:
+        - generic [ref=e83]:
+          - generic [ref=e84]: Context files (optional)
+          - button "Upload file" [active] [ref=e85]:
+            - img [ref=e86]
+            - text: Upload file
+        - paragraph [ref=e89]: Useful for resumes, job descriptions, notes, or other supporting documents.
+      - generic [ref=e90]:
+        - generic [ref=e91]: Goals (optional)
+        - textbox "Goals (optional)" [ref=e92]:
+          - /placeholder: What do you want to optimize for?
+      - generic [ref=e93]:
+        - button "Simulate futures" [ref=e94]:
+          - img [ref=e95]
+          - text: Simulate futures
+        - generic [ref=e98]: Takes ~15 seconds.
+  - generic [ref=e99]:
+    - generic [ref=e101]:
+      - img [ref=e103]
+      - heading "1. Describe the decision" [level=3] [ref=e106]
+      - paragraph [ref=e107]: Give your question, options, and a little context.
+    - generic [ref=e109]:
+      - img [ref=e111]
+      - heading "2. We fork reality" [level=3] [ref=e115]
+      - paragraph [ref=e116]: Parallel agents simulate each path across relevant life dimensions.
+    - generic [ref=e118]:
+      - img [ref=e120]
+      - heading "3. Compare futures" [level=3] [ref=e123]
+      - paragraph [ref=e124]: Read narrated timelines and see how your metrics diverge.
+  - generic [ref=e125]: Reality Fork is a speculative tool, not a prediction. Use it for reflection, not certainty.

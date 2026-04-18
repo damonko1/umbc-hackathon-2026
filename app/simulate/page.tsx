@@ -32,7 +32,7 @@ function newSimulationId(): string {
 
 export default function SimulatePage() {
   const router = useRouter();
-  const [stage, setStage] = React.useState<Stage>(0);
+  const [stage, setStage] = React.useState<Stage>(1);
   const [result, setResult] = React.useState<SimulationResult | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const [progress, setProgress] = React.useState<SimulationProgress | null>(null);
@@ -68,7 +68,6 @@ export default function SimulatePage() {
 
     const simulationId = newSimulationId();
 
-    setStage(1);
     const t1 = setTimeout(() => {
       setStage((s) => (s < 2 ? 2 : s));
     }, 6000);

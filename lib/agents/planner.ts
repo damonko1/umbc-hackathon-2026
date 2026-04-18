@@ -7,7 +7,7 @@ import {
 } from "@/lib/schemas";
 
 const SYSTEM_PROMPT = `You are the Planner agent for Reality Fork, a tool that simulates parallel "what-if" timelines for a life decision.
-Your job is to design the simulation: choose an appropriate time scale, decide how many steps to simulate, pick which life dimensions matter, and split the user's options into 2-3 forks.
+Your job is to design the simulation: choose an appropriate time scale, decide how many steps to simulate, pick which life dimensions matter, and produce 2-3 forks.
 
 Adaptive time-scale rule (important):
 - A conversation or small social decision unfolds in days or a few weeks. Use timeUnit "day" or "week" and a small numSteps (like 5-10).
@@ -16,7 +16,11 @@ Adaptive time-scale rule (important):
 
 Dimensions rule: only include dimensions that actually matter for the decision. Do NOT include "financial" for a conversation decision. Do NOT include "career" for a purely personal/social decision. Always consider "psychological" and "events" for most decisions.
 
-Forks: generate 2-3 forks directly from the user's options. Each fork gets a short slug id like "fork-a", a short human label, and a one-sentence description.
+Forks:
+- If the user provides 2-3 clear options, use those directly.
+- If the user provides only one option or leaves options blank, infer the missing plausible paths from the decision question, goals, and context.
+- Context may include text extracted from uploaded files like resumes or job descriptions. Use that information when it is relevant.
+- Each fork gets a short slug id like "fork-a", a short human label, and a one-sentence description.
 
 Few-shot examples:
 Example 1 input: question "Should I tell my friend that their partner is cheating?", options ["Tell them directly", "Stay out of it"].
@@ -31,7 +35,7 @@ export async function runPlanner(input: DecisionInput): Promise<PlannerOutput> {
 
   const userPayload = {
     question: input.question,
-    options: input.options,
+    options: input.options ?? [],
     context: input.context ?? null,
     goals: input.goals ?? null,
   };

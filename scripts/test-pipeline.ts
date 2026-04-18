@@ -8,7 +8,7 @@ async function main() {
     if (m) process.env[m[1]] = m[2];
   }
 
-  const { runSimulation } = await import("../lib/orchestrator.ts");
+  const { runSimulation } = await import("../lib/orchestrator");
 
   const input = {
     question:

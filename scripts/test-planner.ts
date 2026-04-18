@@ -9,7 +9,7 @@ async function main() {
   }
 
   const { z } = await import("zod");
-  const { PlannerOutputSchema } = await import("../lib/schemas.ts");
+  const { PlannerOutputSchema } = await import("../lib/schemas");
   const { Ollama } = await import("ollama");
 
   const jsonSchema = z.toJSONSchema(PlannerOutputSchema, { target: "draft-7" });
