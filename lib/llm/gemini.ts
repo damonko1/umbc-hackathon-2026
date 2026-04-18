@@ -78,10 +78,21 @@ export class GeminiProvider implements LlmProvider {
         });
         const raw = response.text ?? "";
         const parsed = JSON.parse(raw);
+        const u = (response as { usageMetadata?: { promptTokenCount?: number; candidatesTokenCount?: number } })
+          .usageMetadata;
+        req.onMeta?.({
+          usage: u
+            ? { inputTokens: u.promptTokenCount, outputTokens: u.candidatesTokenCount }
+            : undefined,
+          retries: attempt,
+        });
         return req.schema.parse(parsed) as z.infer<S>;
       } catch (err) {
         lastErr = err;
-        if (attempt === maxRetries) break;
+        if (attempt === maxRetries) {
+          req.onMeta?.({ retries: attempt });
+          break;
+        }
       }
     }
     throw new Error(

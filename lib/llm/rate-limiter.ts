@@ -1,5 +1,6 @@
 import type { ZodTypeAny, z } from "zod";
 import type { LlmProvider, StructuredRequest } from "./types";
+import { telemetry } from "./telemetry";
 
 /**
  * Parses Google's retryDelay hint from a 429 error message.
@@ -76,6 +77,14 @@ export class RateLimitedProvider implements LlmProvider {
     this.model = inner.model;
   }
 
+  getQueueDepth(): number {
+    return this.queue.length;
+  }
+
+  getRpm(): number {
+    return this.rpm;
+  }
+
   async generateStructured<S extends ZodTypeAny>(
     req: StructuredRequest<S>,
   ): Promise<z.infer<S>> {
@@ -123,6 +132,7 @@ export class RateLimitedProvider implements LlmProvider {
             const hint = parseRetryDelayMs(err);
             const waitMs = hint ?? 30_000;
             this.pausedUntil = Date.now() + waitMs;
+            telemetry.noteRate429();
             console.warn(
               `[rate-limiter] 429 from ${this.inner.name}; pausing queue ${waitMs}ms (hint=${hint !== null})`,
             );

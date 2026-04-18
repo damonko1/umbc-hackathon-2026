@@ -59,6 +59,7 @@ export class MiniMaxProvider implements LlmProvider {
 
     const maxRetries = req.maxRetries ?? 1;
     let lastErr: unknown;
+    let lastUsage: { inputTokens?: number; outputTokens?: number } | undefined;
 
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
@@ -78,6 +79,13 @@ export class MiniMaxProvider implements LlmProvider {
           tool_choice: { type: "tool", name: toolName },
         });
 
+        if (response.usage) {
+          lastUsage = {
+            inputTokens: response.usage.input_tokens,
+            outputTokens: response.usage.output_tokens,
+          };
+        }
+
         const toolBlock = response.content.find(
           (b): b is Anthropic.ToolUseBlock => b.type === "tool_use",
         );
@@ -87,10 +95,14 @@ export class MiniMaxProvider implements LlmProvider {
           );
         }
 
+        req.onMeta?.({ usage: lastUsage, retries: attempt });
         return req.schema.parse(toolBlock.input) as z.infer<S>;
       } catch (err) {
         lastErr = err;
-        if (attempt === maxRetries) break;
+        if (attempt === maxRetries) {
+          req.onMeta?.({ usage: lastUsage, retries: attempt });
+          break;
+        }
       }
     }
     throw new Error(

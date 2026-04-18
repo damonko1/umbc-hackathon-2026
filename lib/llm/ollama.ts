@@ -64,10 +64,21 @@ export class OllamaProvider implements LlmProvider {
         const raw = response.message?.content ?? "";
         const clean = extractJson(raw);
         const parsed = JSON.parse(clean);
+        const r = response as unknown as { prompt_eval_count?: number; eval_count?: number };
+        req.onMeta?.({
+          usage:
+            r.prompt_eval_count !== undefined || r.eval_count !== undefined
+              ? { inputTokens: r.prompt_eval_count, outputTokens: r.eval_count }
+              : undefined,
+          retries: attempt,
+        });
         return req.schema.parse(parsed) as z.infer<S>;
       } catch (err) {
         lastErr = err;
-        if (attempt === maxRetries) break;
+        if (attempt === maxRetries) {
+          req.onMeta?.({ retries: attempt });
+          break;
+        }
       }
     }
     throw new Error(
