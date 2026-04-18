@@ -26,7 +26,7 @@ const FlatPlannerResponseSchema = z.object({
   timeUnit: z.enum(TIME_UNITS).optional().describe("[plan only] Time unit"),
   numSteps: z.number().int().min(3).max(36).optional().describe("[plan only] How many timesteps"),
   dimensions: z.array(z.enum(DIMENSIONS)).min(1).max(4).optional().describe("[plan only] Which life dimensions matter"),
-  forks: z.array(PlannerForkSchema).min(1).max(3).optional().describe("[plan only] Forks derived from the user's options"),
+  forks: z.array(PlannerForkSchema).min(1).max(3).optional().describe("[plan only] Forks derived from the user's options or inferred from the decision when options are sparse"),
   questions: z.array(ClarifyingQuestionSchema).min(1).max(3).optional().describe("[questions only] 1-3 clarifying questions"),
 });
 
@@ -37,7 +37,6 @@ Adaptive time-scale rule:
 - A conversation or small social decision unfolds in days or a few weeks. Use timeUnit "day" or "week".
 - A career, relocation, or major financial decision unfolds over months or years. Use timeUnit "month" or "year".
 - Pick the smallest useful numSteps that still captures meaningful change.
-
 Speed tier (respect the bounds exactly):
 - "quick": forks 1-2, numSteps 3-6, dimensions 2-3. Use for light questions or when the user wants a fast read.
 - "normal": forks 2-3, numSteps 6-18, dimensions 2-4. The default.
@@ -63,7 +62,12 @@ Dimension selection rules:
 - For a health or lifestyle decision, favor "health", "time", and "psychological".
 - Always stay within the tier's dimension count.
 
-Forks: generate forks directly from the user's options. Each fork gets a short slug id like "fork-a", a short human label, and a one-sentence description. For the "quick" tier with 3 user options, you may collapse to the 2 most distinct forks.
+Forks:
+- If the user provides 2-3 clear options, use those directly.
+- If the user provides only one option or leaves options blank, infer the missing plausible paths from the decision question, goals, and context.
+- Context may include text extracted from uploaded files like resumes or job descriptions. Use that information when it is relevant.
+- Each fork gets a short slug id like "fork-a", a short human label, and a one-sentence description.
+- For the "quick" tier with 3 user options, you may collapse to the 2 most distinct forks.
 
 Few-shot examples:
 
@@ -154,7 +158,7 @@ export async function runPlanner(
 
   const userPayload = {
     question: input.question,
-    options: input.options,
+    options: input.options ?? [],
     context: input.context ?? null,
     goals: input.goals ?? null,
     speed,

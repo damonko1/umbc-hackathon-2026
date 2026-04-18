@@ -60,7 +60,7 @@ const AnswersResponseSchema = z.object({
 
 export default function SimulatePage() {
   const router = useRouter();
-  const [stage, setStage] = React.useState<Stage>(0);
+  const [stage, setStage] = React.useState<Stage>(1);
   const [result, setResult] = React.useState<SimulationResult | null>(null);
   const [decisionRunId, setDecisionRunId] = React.useState<string | null>(null);
   const [error, setError] = React.useState<string | null>(null);

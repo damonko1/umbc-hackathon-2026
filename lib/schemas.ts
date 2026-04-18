@@ -41,14 +41,14 @@ export const DecisionInputSchema = z.object({
   question: z.string().min(3).max(500).describe("The decision the user is weighing"),
   options: z
     .array(z.string().min(1).max(300))
-    .min(2)
     .max(3)
-    .describe("The 2-3 options the user is choosing between"),
+    .optional()
+    .describe("Optional user-provided options. If absent or incomplete, the system should infer likely paths."),
   context: z
     .string()
-    .max(2000)
+    .max(12000)
     .optional()
-    .describe("Background context: age, situation, current state"),
+    .describe("Background context: age, situation, current state, and any uploaded supporting text"),
   goals: z
     .string()
     .max(1000)
