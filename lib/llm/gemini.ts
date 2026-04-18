@@ -41,7 +41,7 @@ export class GeminiProvider implements LlmProvider {
   private client: GoogleGenAI;
 
   constructor(opts: { apiKey: string; model?: string }) {
-    this.model = opts.model ?? "gemini-2.0-flash";
+    this.model = opts.model ?? "gemini-2.5-flash";
     this.client = new GoogleGenAI({ apiKey: opts.apiKey });
   }
 

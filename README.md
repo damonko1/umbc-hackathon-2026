@@ -1,36 +1,85 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Reality Fork
 
-## Getting Started
+Agent-powered decision simulation. Give it a life decision, and it generates
+parallel "what-if" timelines so you can see how each path might unfold.
 
-First, run the development server:
+- **Adaptive scope**: a conversation decision gets simulated in days; a career
+  decision gets simulated in months or years. The planner agent picks the
+  horizon.
+- **Parallel "multi-agent" simulation**: four specialized agents (financial,
+  career, psychological, events) score each fork month-by-month; a narrator
+  agent stitches them into a cohesive story.
+- **Side-by-side comparison**: every fork gets its own timeline, plus line
+  charts comparing forks on each dimension.
+
+Built for the UMBC Hackathon 2026.
+
+## Tech
+
+- Next.js 16 (App Router, TypeScript)
+- Tailwind CSS 4 + custom UI primitives
+- Recharts for metric charts
+- Zod for schema contracts
+- **LLM: pluggable**
+  - Ollama Cloud (default, free) — [get a key](https://ollama.com/settings/keys)
+  - Google Gemini (alternate)
+
+## Run locally
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+pnpm install
+cp .env.example .env.local
+# edit .env.local and paste your OLLAMA_API_KEY
 pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open http://localhost:3000.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Switching provider / model
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Set env vars in `.env.local`:
 
-## Learn More
+```bash
+# default — free via Ollama Cloud
+LLM_PROVIDER=ollama
+OLLAMA_API_KEY=...
+# LLM_MODEL=qwen3.5:397b
 
-To learn more about Next.js, take a look at the following resources:
+# or: Gemini
+LLM_PROVIDER=gemini
+GEMINI_API_KEY=...
+# LLM_MODEL=gemini-2.0-flash
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+The provider interface is in `lib/llm/types.ts`. Add a new provider by
+implementing `LlmProvider.generateStructured` and wiring it in
+`lib/llm/index.ts`.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Architecture
 
-## Deploy on Vercel
+```
+User decision + context
+  ↓
+[Planner agent] → horizon, granularity, dimensions, forks
+  ↓
+for each fork (parallel):
+  ├─ [Financial agent]      ┐
+  ├─ [Career agent]         │ parallel structured-output calls
+  ├─ [Psychological agent]  │
+  └─ [Events agent]         ┘
+  ↓
+[Narrator agent] → cohesive month/step-by-step timeline
+  ↓
+Side-by-side UI + metric charts
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+All agent I/O is typed via shared Zod schemas in `lib/schemas.ts`.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Deploy
+
+```bash
+vercel
+# add OLLAMA_API_KEY (and LLM_PROVIDER if not default) in the Vercel dashboard
+```
+
+The `/api/simulate` route has `maxDuration = 60` to handle longer agent chains.
